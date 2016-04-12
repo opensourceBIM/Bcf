@@ -1,0 +1,33 @@
+<project default="Generate">
+	<property name="src.dir" value="generated" />
+	<target name="Generate">
+		<java classname="com.sun.tools.internal.xjc.XJCFacade">
+			<arg value="-p" />
+			<arg value="org.opensourcebim.bcf.markup" />
+			<arg value="-d" />
+			<arg value="generated" />
+			<arg value="schemas/markup.xsd" />
+		</java>
+		<java classname="com.sun.tools.internal.xjc.XJCFacade">
+			<arg value="-p" />
+			<arg value="org.opensourcebim.bcf.project" />
+			<arg value="-d" />
+			<arg value="generated" />
+			<arg value="schemas/project.xsd" />
+		</java>
+		<java classname="com.sun.tools.internal.xjc.XJCFacade">
+			<arg value="-p" />
+			<arg value="org.opensourcebim.bcf.version" />
+			<arg value="-d" />
+			<arg value="generated" />
+			<arg value="schemas/version.xsd" />
+		</java>
+		<java classname="com.sun.tools.internal.xjc.XJCFacade">
+			<arg value="-p" />
+			<arg value="org.opensourcebim.bcf.visinfo" />
+			<arg value="-d" />
+			<arg value="generated" />
+			<arg value="schemas/visinfo.xsd" />
+		</java>
+	</target>
+</project>
