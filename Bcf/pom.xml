@@ -22,7 +22,6 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>build-helper-maven-plugin</artifactId>
-				<version>1.10</version>
 				<executions>
 					<execution>
 						<id>add-source</id>
@@ -36,12 +35,6 @@
 							</sources>
 						</configuration>
 					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>build-helper-maven-plugin</artifactId>
-				<executions>
 					<execution>
 						<id>attach-plugin</id>
 						<phase>package</phase>
