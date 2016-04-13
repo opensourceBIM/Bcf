@@ -3,6 +3,7 @@ package org.opensourcebim.bcf;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -19,7 +20,7 @@ import org.opensourcebim.bcf.visinfo.VisualizationInfo;
 
 public class TopicFolder {
 	private byte[] defaultSnapShot;
-	private byte[][] allSnapShots;
+	private Map<String, byte[]> snapshots;
 	private Markup markup;
 	private VisualizationInfo visualizationInfo;
 	private UUID uuid;
@@ -113,5 +114,17 @@ public class TopicFolder {
 
 	public void setDefaultSnapShot(InputStream inputStream) throws IOException {
 		defaultSnapShot = IOUtils.toByteArray(inputStream);
+	}
+
+	public void setDefaultSnapShotToDummy() {
+		try {
+			setDefaultSnapShot(getClass().getResourceAsStream("dummy.png"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void addSnapShot(String name, byte[] byteArray) {
+		snapshots.put(name, byteArray);
 	}
 }

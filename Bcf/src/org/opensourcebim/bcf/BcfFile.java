@@ -19,6 +19,7 @@ import java.util.zip.ZipOutputStream;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
 import org.apache.commons.io.IOUtils;
@@ -26,12 +27,13 @@ import org.opensourcebim.bcf.markup.Markup;
 import org.opensourcebim.bcf.markup.Topic;
 import org.opensourcebim.bcf.project.Project;
 import org.opensourcebim.bcf.utils.FakeClosingInputStream;
+import org.opensourcebim.bcf.version.Version;
 import org.opensourcebim.bcf.visinfo.VisualizationInfo;
 
 public class BcfFile {
 	private final Map<UUID, TopicFolder> topicFolders = new HashMap<UUID, TopicFolder>();
 	
-	private Project project = new Project();
+	private Project project;
 	
 	public BcfFile() {
 	}
@@ -74,13 +76,27 @@ public class BcfFile {
 						} catch (JAXBException e) {
 							throw new BcfException(e);
 						}
-					} else if (zipEntry.getName().endsWith(".png")) {
+					} else if (zipEntry.getName().equals("snapshot.png")) {
 						ByteArrayOutputStream baos = new ByteArrayOutputStream();
 						IOUtils.copy(zipInputStream, baos);
 						issue.setDefaultSnapShot(baos.toByteArray());
+					} else if (zipEntry.getName().endsWith(".png")) {
+						ByteArrayOutputStream baos = new ByteArrayOutputStream();
+						IOUtils.copy(zipInputStream, baos);
+						issue.addSnapShot(zipEntry.getName(), baos.toByteArray());
 					}
 				} else {
-					throw new BcfException("Unexpected zipfile content");
+					if (name.equals("project.bcfp")) {
+						try {
+							JAXBContext jaxbContext = JAXBContext.newInstance(Project.class);
+							Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+							project = (Project) unmarshaller.unmarshal(new FakeClosingInputStream(zipInputStream));
+						} catch (JAXBException e) {
+							throw new BcfException(e);
+						}
+					} else {
+						throw new BcfException("Unexpected zipfile content");
+					}
 				}
 			}
 			zipInputStream.close();
@@ -101,6 +117,32 @@ public class BcfFile {
 	
 	public void write(OutputStream outputStream) throws BcfException, IOException {
 		ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream);
+		
+		if (project != null) {
+			zipOutputStream.putNextEntry(new ZipEntry("project.bcfp"));
+			try {
+				JAXBContext jaxbContext = JAXBContext.newInstance(Project.class);
+				Marshaller marshaller = jaxbContext.createMarshaller();
+				marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+				marshaller.marshal(project, zipOutputStream);
+			} catch (JAXBException e) {
+				throw new BcfException(e);
+			}
+		}
+
+		Version version = new Version();
+		version.setDetailedVersion("2.0 RC");
+		
+		zipOutputStream.putNextEntry(new ZipEntry("bcf.version"));
+		try {
+			JAXBContext jaxbContext = JAXBContext.newInstance(Version.class);
+			Marshaller marshaller = jaxbContext.createMarshaller();
+			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+			marshaller.marshal(version, zipOutputStream);
+		} catch (JAXBException e) {
+			throw new BcfException(e);
+		}
+		
 		for (TopicFolder topicFolder : topicFolders.values()) {
 			topicFolder.write(zipOutputStream);
 		}
@@ -134,6 +176,9 @@ public class BcfFile {
 	}
 
 	public Project getProject() {
+		if (project == null) {
+			project = new Project();
+		}
 		return project;
 	}
 
