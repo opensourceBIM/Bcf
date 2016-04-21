@@ -15,7 +15,6 @@
 				<directory>plugin</directory>
 			</resource>
 			<resource>
-				<targetPath>/</targetPath>
 				<directory>src</directory>
 				<includes>
 					<include>**/*.png</include>
