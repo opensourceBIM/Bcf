@@ -18,7 +18,7 @@
 				<targetPath>/</targetPath>
 				<directory>src</directory>
 				<includes>
-					<include>*.png</include>
+					<include>**/*.png</include>
 				</includes>
 			</resource>
 		</resources>
