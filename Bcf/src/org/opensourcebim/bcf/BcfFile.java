@@ -62,7 +62,7 @@ public class BcfFile {
 		}
 	}
 
-	private void readInternal(InputStream inputStream) throws BcfException {
+	private void readInternal(InputStream inputStream, ReadOptions readOptions) throws BcfException {
 		ZipInputStream zipInputStream = new ZipInputStream(inputStream);
 		try {
 			for (ZipEntry zipEntry = zipInputStream.getNextEntry(); zipEntry != null; zipEntry = zipInputStream.getNextEntry()) {
@@ -84,12 +84,14 @@ public class BcfFile {
 							throw new BcfException(e);
 						}
 					} else if (zipEntry.getName().endsWith(".bcfv")) {
-						try {
-							JAXBContext jaxbContext = JAXBContext.newInstance(VisualizationInfo.class);
-							Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-							issue.setVisualizationInfo((VisualizationInfo)unmarshaller.unmarshal(new FakeClosingInputStream(zipInputStream)));
-						} catch (JAXBException e) {
-							throw new BcfException(e);
+						if (readOptions.isReadViewPoints()) {
+							try {
+								JAXBContext jaxbContext = JAXBContext.newInstance(VisualizationInfo.class);
+								Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+								issue.setVisualizationInfo((VisualizationInfo)unmarshaller.unmarshal(new FakeClosingInputStream(zipInputStream)));
+							} catch (JAXBException e) {
+								throw new BcfException(e);
+							}
 						}
 					} else if (zipEntry.getName().equals("snapshot.png")) {
 						ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -142,7 +144,13 @@ public class BcfFile {
 	
 	public static BcfFile read(InputStream inputStream) throws BcfException {
 		BcfFile bcf = new BcfFile();
-		bcf.readInternal(inputStream);
+		bcf.readInternal(inputStream, ReadOptions.DEFAULT);
+		return bcf;
+	}
+
+	public static BcfFile read(InputStream inputStream, ReadOptions readOptions) throws BcfException {
+		BcfFile bcf = new BcfFile();
+		bcf.readInternal(inputStream, readOptions);
 		return bcf;
 	}
 	
