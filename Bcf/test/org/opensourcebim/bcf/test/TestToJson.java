@@ -15,7 +15,7 @@ public class TestToJson {
 	@Test
 	public void test() {
 		try {
-			BcfFile bcfFile = BcfFile.read(Paths.get(""));
+			BcfFile bcfFile = BcfFile.read(Paths.get("D:\\test.bcfzip"));
 			ObjectNode jsonNode = bcfFile.toJson();
 			ObjectMapper objectMapper = new ObjectMapper();
 			File output = new File("bcf.json");

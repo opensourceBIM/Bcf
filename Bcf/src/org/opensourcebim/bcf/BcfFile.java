@@ -33,6 +33,7 @@ import org.opensourcebim.bcf.markup.Markup;
 import org.opensourcebim.bcf.markup.Topic;
 import org.opensourcebim.bcf.markup.Topic.DocumentReferences;
 import org.opensourcebim.bcf.markup.Topic.RelatedTopics;
+import org.opensourcebim.bcf.markup.ViewPoint;
 import org.opensourcebim.bcf.project.Project;
 import org.opensourcebim.bcf.utils.FakeClosingInputStream;
 import org.opensourcebim.bcf.version.Version;
@@ -251,6 +252,9 @@ public class BcfFile {
 			objectNode.set("version", versionNode);
 		}
 		
+		ObjectNode topicsNode = objectMapper.createObjectNode();
+		objectNode.set("topics", topicsNode);
+		
 		for (UUID uuid : topicFolders.keySet()) {
 			TopicFolder topicFolder = topicFolders.get(uuid);
 			ObjectNode topicFolderNode = objectMapper.createObjectNode();
@@ -309,13 +313,13 @@ public class BcfFile {
 				bimSnippetNode.put("reference", bimSnippet.getReference());
 				bimSnippetNode.put("referenceSchema", bimSnippet.getReferenceSchema());
 				bimSnippetNode.put("snippetType", bimSnippet.getSnippetType());
-				objectNode.set("bimSnippet", bimSnippetNode);
+				topicNode.set("bimSnippet", bimSnippetNode);
 			}
 			if (topic.getCreationDate() != null) {
 				topicNode.put("creationDate", topic.getCreationDate().toGregorianCalendar().getTimeInMillis());
 			}
 			if (topic.getIndex() != null) {
-				topicNode.put("index", topic.getIndex().toString());
+				topicNode.put("index", topic.getIndex().intValue());
 			}
 			if (topic.getModifiedDate() != null) {
 				topicNode.put("modifiedDate", topic.getModifiedDate().toGregorianCalendar().getTimeInMillis());
@@ -330,7 +334,7 @@ public class BcfFile {
 					documentReferenceNode.put("referencedDocument", documentReferences2.getReferencedDocument());
 					documentReferencesNode.add(documentReferenceNode);
 				}
-				objectNode.set("documentReferences", documentReferencesNode);
+				topicNode.set("documentReferences", documentReferencesNode);
 			}
 			List<String> labels = topic.getLabels();
 			if (labels != null) {
@@ -338,7 +342,7 @@ public class BcfFile {
 				for (String label : labels) {
 					labelsNode.add(label);
 				}
-				objectNode.set("labels", labelsNode);
+				topicNode.set("labels", labelsNode);
 			}
 			List<RelatedTopics> relatedTopics = topic.getRelatedTopics();
 			if (relatedTopics != null) {
@@ -346,7 +350,18 @@ public class BcfFile {
 				for (RelatedTopics relatedTopics2 : relatedTopics) {
 					relatedTopicsNode.add(relatedTopics2.getGuid());
 				}
-				objectNode.set("relatedTopics", relatedTopicsNode);
+				topicNode.set("relatedTopics", relatedTopicsNode);
+			}
+			List<ViewPoint> viewpoints = topicFolder.getMarkup().getViewpoints();
+			if (viewpoints != null) {
+				ArrayNode viewPointsNode = objectMapper.createArrayNode();
+				for (ViewPoint viewPoint : viewpoints) {
+					ObjectNode viewpointNode = objectMapper.createObjectNode();
+					viewpointNode.put("snapshot", viewPoint.getSnapshot());
+					viewpointNode.put("viewpoint", viewPoint.getViewpoint());
+					viewPointsNode.add(viewpointNode);
+				}
+				topicNode.set("viewpoints", viewPointsNode);
 			}
 			List<Comment> comments = topicFolder.getMarkup().getComment();
 			if (comments != null) {
@@ -380,10 +395,11 @@ public class BcfFile {
 						viewpointNode.put("guid", viewpoint.getGuid());
 						commentNode.set("viewpoint", viewpointNode);
 					}
+					commentsNode.add(commentNode);
 				}
-				objectNode.set("comments", commentsNode);
+				topicNode.set("comments", commentsNode);
 			}
-			objectNode.set(uuid.toString(), topicFolderNode);
+			topicsNode.set(uuid.toString(), topicFolderNode);
 		}
 		return objectNode;
 	}
