@@ -43,7 +43,7 @@ public class TestReadWrite {
 		header.getFile().add(file);
 		
 		topicFolder.setDefaultSnapShot(getClass().getResourceAsStream("building.png"));
-		Topic topic = topicFolder.getTopic();
+		Topic topic = topicFolder.createTopic();
 		topic.setGuid(UUID.randomUUID().toString());
 		topic.setTitle("test");
 		topic.setCreationDate(DatatypeFactory.newInstance().newXMLGregorianCalendar(now));

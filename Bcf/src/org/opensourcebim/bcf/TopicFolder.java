@@ -3,6 +3,7 @@ package org.opensourcebim.bcf;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
@@ -24,8 +25,6 @@ public class TopicFolder {
 	private Markup markup;
 	private VisualizationInfo visualizationInfo;
 	private UUID uuid;
-	private Topic topic = new Topic();
-	private Header header;
 
 	public TopicFolder(UUID uuid) {
 		this.uuid = uuid;
@@ -103,15 +102,6 @@ public class TopicFolder {
 		return ifcFileReference;
 	}
 
-	public Header createHeader() {
-		header = new Header();
-		return header;
-	}
-
-	public Topic getTopic() {
-		return topic;
-	}
-
 	public void setDefaultSnapShot(InputStream inputStream) throws IOException {
 		defaultSnapShot = IOUtils.toByteArray(inputStream);
 	}
@@ -125,6 +115,21 @@ public class TopicFolder {
 	}
 
 	public void addSnapShot(String name, byte[] byteArray) {
+		if (snapshots == null) {
+			snapshots = new HashMap<>();
+		}
 		snapshots.put(name, byteArray);
+	}
+
+	public Header createHeader() {
+		Header header = new Header();
+		getMarkup().setHeader(header);
+		return header;
+	}
+
+	public Topic createTopic() {
+		Topic topic = new Topic();
+		markup.setTopic(topic);
+		return topic;
 	}
 }

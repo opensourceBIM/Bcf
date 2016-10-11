@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
@@ -21,19 +22,32 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.apache.commons.io.IOUtils;
+import org.opensourcebim.bcf.markup.BimSnippet;
+import org.opensourcebim.bcf.markup.Comment;
+import org.opensourcebim.bcf.markup.Comment.Viewpoint;
+import org.opensourcebim.bcf.markup.Header;
 import org.opensourcebim.bcf.markup.Markup;
 import org.opensourcebim.bcf.markup.Topic;
+import org.opensourcebim.bcf.markup.Topic.DocumentReferences;
+import org.opensourcebim.bcf.markup.Topic.RelatedTopics;
 import org.opensourcebim.bcf.project.Project;
 import org.opensourcebim.bcf.utils.FakeClosingInputStream;
 import org.opensourcebim.bcf.version.Version;
 import org.opensourcebim.bcf.visinfo.VisualizationInfo;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 public class BcfFile {
 	private final Map<UUID, TopicFolder> topicFolders = new HashMap<UUID, TopicFolder>();
 	
 	private Project project;
+
+	private Version version;
 	
 	public BcfFile() {
 	}
@@ -94,8 +108,16 @@ public class BcfFile {
 						} catch (JAXBException e) {
 							throw new BcfException(e);
 						}
+					} else if (name.equals("bcf.version")) {
+						try {
+							JAXBContext jaxbContext = JAXBContext.newInstance(Version.class);
+							Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+							setVersion((Version)unmarshaller.unmarshal(new FakeClosingInputStream(zipInputStream)));
+						} catch (JAXBException e) {
+							e.printStackTrace();
+						}
 					} else {
-						throw new BcfException("Unexpected zipfile content");
+						throw new BcfException("Unexpected zipfile content " + name);
 					}
 				}
 			}
@@ -103,6 +125,14 @@ public class BcfFile {
 		} catch (IOException e) {
 			throw new BcfException(e);
 		}
+	}
+	
+	private void setVersion(Version version) {
+		this.version = version;
+	}
+
+	public Version getVersion() {
+		return version;
 	}
 	
 	public void addTopicFolder(TopicFolder topicFolder) {
@@ -184,7 +214,7 @@ public class BcfFile {
 
 	public void validate() throws BcfValidationException {
 		for (TopicFolder topicFolder : getTopicFolders()) {
-			Topic topic = topicFolder.getTopic();
+			Topic topic = topicFolder.getMarkup().getTopic();
 			if (topic.getGuid() == null || topic.getGuid().trim().equals("")) {
 				throw new BcfValidationException("Topic does not have a Guid");
 			}
@@ -209,5 +239,152 @@ public class BcfFile {
 
 	public static BcfFile read(Path path) throws BcfException, IOException {
 		return read(Files.newInputStream(path));
+	}
+
+	public ObjectNode toJson() {
+		ObjectMapper objectMapper = new ObjectMapper();
+		ObjectNode objectNode = objectMapper.createObjectNode();
+		if (version != null) {
+			ObjectNode versionNode = objectMapper.createObjectNode();
+			versionNode.put("detailed", version.getDetailedVersion());
+			versionNode.put("id", version.getVersionId());
+			objectNode.set("version", versionNode);
+		}
+		
+		for (UUID uuid : topicFolders.keySet()) {
+			TopicFolder topicFolder = topicFolders.get(uuid);
+			ObjectNode topicFolderNode = objectMapper.createObjectNode();
+			topicFolderNode.put("uuid", uuid.toString());
+			
+			Header header = topicFolder.getMarkup().getHeader();
+			if (header != null) {
+				ObjectNode headerNode = objectMapper.createObjectNode();
+				List<org.opensourcebim.bcf.markup.Header.File> files = header.getFile();
+				if (files != null) {
+					ArrayNode filesNode = objectMapper.createArrayNode();
+					headerNode.set("files", filesNode);
+					for (org.opensourcebim.bcf.markup.Header.File file : files) {
+						ObjectNode fileNode = objectMapper.createObjectNode();
+						XMLGregorianCalendar date = file.getDate();
+						if (date != null) {
+							fileNode.put("date", date.toGregorianCalendar().getTimeInMillis());
+						}
+						if (file.getFilename() != null) {
+							fileNode.put("filename", file.getFilename());
+						}
+						if (file.getIfcProject() != null) {
+							fileNode.put("ifcProject", file.getIfcProject());
+						}
+						if (file.getIfcSpatialStructureElement() != null) {
+							fileNode.put("ifcSpatialStructureElement", file.getIfcSpatialStructureElement());
+						}
+						if (file.getReference() != null) {
+							fileNode.put("reference", file.getReference());
+						}
+						if (!file.isIsExternal()) {
+							fileNode.put("isExternal", false);
+						}
+						filesNode.add(fileNode);
+					}
+				}
+				objectNode.set("header", headerNode);
+			}
+			
+			Topic topic = topicFolder.getMarkup().getTopic();
+			ObjectNode topicNode = objectMapper.createObjectNode();
+			topicFolderNode.set("topic", topicNode);
+			topicNode.put("assignedTo", topic.getAssignedTo());
+			topicNode.put("creationAuthor", topic.getCreationAuthor());
+			topicNode.put("description", topic.getDescription());
+			topicNode.put("guid", topic.getGuid());
+			topicNode.put("modifiedAuthor", topic.getModifiedAuthor());
+			topicNode.put("priority", topic.getPriority());
+			topicNode.put("referenceLink", topic.getReferenceLink());
+			topicNode.put("title", topic.getTitle());
+			topicNode.put("topicStatus", topic.getTopicStatus());
+			topicNode.put("topicType", topic.getTopicType());
+			BimSnippet bimSnippet = topic.getBimSnippet();
+			if (bimSnippet != null) {
+				ObjectNode bimSnippetNode = objectMapper.createObjectNode();
+				bimSnippetNode.put("reference", bimSnippet.getReference());
+				bimSnippetNode.put("referenceSchema", bimSnippet.getReferenceSchema());
+				bimSnippetNode.put("snippetType", bimSnippet.getSnippetType());
+				objectNode.set("bimSnippet", bimSnippetNode);
+			}
+			if (topic.getCreationDate() != null) {
+				topicNode.put("creationDate", topic.getCreationDate().toGregorianCalendar().getTimeInMillis());
+			}
+			if (topic.getIndex() != null) {
+				topicNode.put("index", topic.getIndex().toString());
+			}
+			if (topic.getModifiedDate() != null) {
+				topicNode.put("modifiedDate", topic.getModifiedDate().toGregorianCalendar().getTimeInMillis());
+			}
+			List<DocumentReferences> documentReferences = topic.getDocumentReferences();
+			if (documentReferences != null) {
+				ArrayNode documentReferencesNode = objectMapper.createArrayNode();
+				for (DocumentReferences documentReferences2 : documentReferences) {
+					ObjectNode documentReferenceNode = objectMapper.createObjectNode();
+					documentReferenceNode.put("description", documentReferences2.getDescription());
+					documentReferenceNode.put("guid", documentReferences2.getGuid());
+					documentReferenceNode.put("referencedDocument", documentReferences2.getReferencedDocument());
+					documentReferencesNode.add(documentReferenceNode);
+				}
+				objectNode.set("documentReferences", documentReferencesNode);
+			}
+			List<String> labels = topic.getLabels();
+			if (labels != null) {
+				ArrayNode labelsNode = objectMapper.createArrayNode();
+				for (String label : labels) {
+					labelsNode.add(label);
+				}
+				objectNode.set("labels", labelsNode);
+			}
+			List<RelatedTopics> relatedTopics = topic.getRelatedTopics();
+			if (relatedTopics != null) {
+				ArrayNode relatedTopicsNode = objectMapper.createArrayNode();
+				for (RelatedTopics relatedTopics2 : relatedTopics) {
+					relatedTopicsNode.add(relatedTopics2.getGuid());
+				}
+				objectNode.set("relatedTopics", relatedTopicsNode);
+			}
+			List<Comment> comments = topicFolder.getMarkup().getComment();
+			if (comments != null) {
+				ArrayNode commentsNode = objectMapper.createArrayNode();
+				for (Comment comment : comments) {
+					ObjectNode commentNode = objectMapper.createObjectNode();
+					if (comment.getDate() != null) {
+						commentNode.put("date", comment.getDate().toGregorianCalendar().getTimeInMillis());
+					}
+					commentNode.put("author", comment.getAuthor());
+					commentNode.put("comment", comment.getComment());
+
+					if (comment.getGuid() != null) {
+						commentNode.put("guid", comment.getGuid());
+					}
+					if (comment.getModifiedAuthor() != null) {
+						commentNode.put("modifiedAuthor", comment.getModifiedAuthor());
+					}
+					if (comment.getStatus() != null) {
+						commentNode.put("status", comment.getStatus());
+					}
+					if (comment.getVerbalStatus() != null) {
+						commentNode.put("verbalStatus", comment.getVerbalStatus());
+					}
+					if (comment.getModifiedDate() != null) {
+						commentNode.put("modifiedDate", comment.getModifiedDate().toGregorianCalendar().getTimeInMillis());
+					}
+					Viewpoint viewpoint = comment.getViewpoint();
+					if (viewpoint != null) {
+						ObjectNode viewpointNode = objectMapper.createObjectNode();
+						viewpointNode.put("guid", viewpoint.getGuid());
+						commentNode.set("viewpoint", viewpointNode);
+					}
+				}
+				objectNode.set("comments", commentsNode);
+			}
+			objectNode.set(uuid.toString(), topicFolderNode);
+		}
+		return objectNode;
 	}
 }
