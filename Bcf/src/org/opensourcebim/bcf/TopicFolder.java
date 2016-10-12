@@ -132,4 +132,8 @@ public class TopicFolder {
 		markup.setTopic(topic);
 		return topic;
 	}
+
+	public byte[] getSnapshot(String name) {
+		return snapshots.get(name);
+	}
 }

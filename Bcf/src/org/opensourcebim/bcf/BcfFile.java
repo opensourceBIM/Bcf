@@ -97,6 +97,7 @@ public class BcfFile {
 						ByteArrayOutputStream baos = new ByteArrayOutputStream();
 						IOUtils.copy(zipInputStream, baos);
 						issue.setDefaultSnapShot(baos.toByteArray());
+						issue.addSnapShot(zipEntry.getName(), baos.toByteArray());
 					} else if (zipEntry.getName().endsWith(".png")) {
 						ByteArrayOutputStream baos = new ByteArrayOutputStream();
 						IOUtils.copy(zipInputStream, baos);
@@ -410,5 +411,9 @@ public class BcfFile {
 			topicsNode.set(uuid.toString(), topicFolderNode);
 		}
 		return objectNode;
+	}
+
+	public TopicFolder getTopicFolder(String topicGuid) {
+		return topicFolders.get(UUID.fromString(topicGuid));
 	}
 }
