@@ -17,11 +17,11 @@ public class TestToJson {
 		try {
 			BcfFile bcfFile = BcfFile.read(Paths.get("D:\\test.bcfzip"));
 			ObjectNode jsonNode = bcfFile.toJson();
-			ObjectMapper objectMapper = new ObjectMapper();
+			ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 			File output = new File("bcf.json");
 			File images = new File("images");
 			images.mkdir();
-			objectMapper.writerWithDefaultPrettyPrinter().writeValue(output, jsonNode);
+			OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValue(output, jsonNode);
 		} catch (BcfException e) {
 			e.printStackTrace();
 		} catch (IOException e) {

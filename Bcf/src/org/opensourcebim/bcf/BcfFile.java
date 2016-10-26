@@ -45,9 +45,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class BcfFile {
 	private final Map<UUID, TopicFolder> topicFolders = new HashMap<UUID, TopicFolder>();
+	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 	
 	private Project project;
-
 	private Version version;
 	
 	public BcfFile() {
@@ -252,32 +252,31 @@ public class BcfFile {
 	}
 
 	public ObjectNode toJson() {
-		ObjectMapper objectMapper = new ObjectMapper();
-		ObjectNode objectNode = objectMapper.createObjectNode();
+		ObjectNode objectNode = OBJECT_MAPPER.createObjectNode();
 		if (version != null) {
-			ObjectNode versionNode = objectMapper.createObjectNode();
+			ObjectNode versionNode = OBJECT_MAPPER.createObjectNode();
 			versionNode.put("detailed", version.getDetailedVersion());
 			versionNode.put("id", version.getVersionId());
 			objectNode.set("version", versionNode);
 		}
 		
-		ObjectNode topicsNode = objectMapper.createObjectNode();
+		ObjectNode topicsNode = OBJECT_MAPPER.createObjectNode();
 		objectNode.set("topics", topicsNode);
 		
 		for (UUID uuid : topicFolders.keySet()) {
 			TopicFolder topicFolder = topicFolders.get(uuid);
-			ObjectNode topicFolderNode = objectMapper.createObjectNode();
+			ObjectNode topicFolderNode = OBJECT_MAPPER.createObjectNode();
 			topicFolderNode.put("uuid", uuid.toString());
 			
 			Header header = topicFolder.getMarkup().getHeader();
 			if (header != null) {
-				ObjectNode headerNode = objectMapper.createObjectNode();
+				ObjectNode headerNode = OBJECT_MAPPER.createObjectNode();
 				List<org.opensourcebim.bcf.markup.Header.File> files = header.getFile();
 				if (files != null) {
-					ArrayNode filesNode = objectMapper.createArrayNode();
+					ArrayNode filesNode = OBJECT_MAPPER.createArrayNode();
 					headerNode.set("files", filesNode);
 					for (org.opensourcebim.bcf.markup.Header.File file : files) {
-						ObjectNode fileNode = objectMapper.createObjectNode();
+						ObjectNode fileNode = OBJECT_MAPPER.createObjectNode();
 						XMLGregorianCalendar date = file.getDate();
 						if (date != null) {
 							fileNode.put("date", date.toGregorianCalendar().getTimeInMillis());
@@ -304,7 +303,7 @@ public class BcfFile {
 			}
 			
 			Topic topic = topicFolder.getMarkup().getTopic();
-			ObjectNode topicNode = objectMapper.createObjectNode();
+			ObjectNode topicNode = OBJECT_MAPPER.createObjectNode();
 			topicFolderNode.set("topic", topicNode);
 			topicNode.put("assignedTo", topic.getAssignedTo());
 			topicNode.put("creationAuthor", topic.getCreationAuthor());
@@ -318,7 +317,7 @@ public class BcfFile {
 			topicNode.put("topicType", topic.getTopicType());
 			BimSnippet bimSnippet = topic.getBimSnippet();
 			if (bimSnippet != null) {
-				ObjectNode bimSnippetNode = objectMapper.createObjectNode();
+				ObjectNode bimSnippetNode = OBJECT_MAPPER.createObjectNode();
 				bimSnippetNode.put("reference", bimSnippet.getReference());
 				bimSnippetNode.put("referenceSchema", bimSnippet.getReferenceSchema());
 				bimSnippetNode.put("snippetType", bimSnippet.getSnippetType());
@@ -335,9 +334,9 @@ public class BcfFile {
 			}
 			List<DocumentReferences> documentReferences = topic.getDocumentReferences();
 			if (documentReferences != null) {
-				ArrayNode documentReferencesNode = objectMapper.createArrayNode();
+				ArrayNode documentReferencesNode = OBJECT_MAPPER.createArrayNode();
 				for (DocumentReferences documentReferences2 : documentReferences) {
-					ObjectNode documentReferenceNode = objectMapper.createObjectNode();
+					ObjectNode documentReferenceNode = OBJECT_MAPPER.createObjectNode();
 					documentReferenceNode.put("description", documentReferences2.getDescription());
 					documentReferenceNode.put("guid", documentReferences2.getGuid());
 					documentReferenceNode.put("referencedDocument", documentReferences2.getReferencedDocument());
@@ -347,7 +346,7 @@ public class BcfFile {
 			}
 			List<String> labels = topic.getLabels();
 			if (labels != null) {
-				ArrayNode labelsNode = objectMapper.createArrayNode();
+				ArrayNode labelsNode = OBJECT_MAPPER.createArrayNode();
 				for (String label : labels) {
 					labelsNode.add(label);
 				}
@@ -355,7 +354,7 @@ public class BcfFile {
 			}
 			List<RelatedTopics> relatedTopics = topic.getRelatedTopics();
 			if (relatedTopics != null) {
-				ArrayNode relatedTopicsNode = objectMapper.createArrayNode();
+				ArrayNode relatedTopicsNode = OBJECT_MAPPER.createArrayNode();
 				for (RelatedTopics relatedTopics2 : relatedTopics) {
 					relatedTopicsNode.add(relatedTopics2.getGuid());
 				}
@@ -363,9 +362,9 @@ public class BcfFile {
 			}
 			List<ViewPoint> viewpoints = topicFolder.getMarkup().getViewpoints();
 			if (viewpoints != null) {
-				ArrayNode viewPointsNode = objectMapper.createArrayNode();
+				ArrayNode viewPointsNode = OBJECT_MAPPER.createArrayNode();
 				for (ViewPoint viewPoint : viewpoints) {
-					ObjectNode viewpointNode = objectMapper.createObjectNode();
+					ObjectNode viewpointNode = OBJECT_MAPPER.createObjectNode();
 					viewpointNode.put("snapshot", viewPoint.getSnapshot());
 					viewpointNode.put("viewpoint", viewPoint.getViewpoint());
 					viewPointsNode.add(viewpointNode);
@@ -374,9 +373,9 @@ public class BcfFile {
 			}
 			List<Comment> comments = topicFolder.getMarkup().getComment();
 			if (comments != null) {
-				ArrayNode commentsNode = objectMapper.createArrayNode();
+				ArrayNode commentsNode = OBJECT_MAPPER.createArrayNode();
 				for (Comment comment : comments) {
-					ObjectNode commentNode = objectMapper.createObjectNode();
+					ObjectNode commentNode = OBJECT_MAPPER.createObjectNode();
 					if (comment.getDate() != null) {
 						commentNode.put("date", comment.getDate().toGregorianCalendar().getTimeInMillis());
 					}
@@ -400,7 +399,7 @@ public class BcfFile {
 					}
 					Viewpoint viewpoint = comment.getViewpoint();
 					if (viewpoint != null) {
-						ObjectNode viewpointNode = objectMapper.createObjectNode();
+						ObjectNode viewpointNode = OBJECT_MAPPER.createObjectNode();
 						viewpointNode.put("guid", viewpoint.getGuid());
 						commentNode.set("viewpoint", viewpointNode);
 					}
