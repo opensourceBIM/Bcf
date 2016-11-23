@@ -91,10 +91,12 @@ public class TopicFolder {
 			throw new BcfException(e);
 		}
 
-		ZipEntry image = new ZipEntry(getUuid().toString() + "/snapshot.png");
-		zipOutputStream.putNextEntry(image);
-		ByteArrayInputStream bais = new ByteArrayInputStream(getDefaultSnapShot());
-		IOUtils.copy(bais, zipOutputStream);
+		if (getDefaultSnapShot() != null) {
+			ZipEntry image = new ZipEntry(getUuid().toString() + "/snapshot.png");
+			zipOutputStream.putNextEntry(image);
+			ByteArrayInputStream bais = new ByteArrayInputStream(getDefaultSnapShot());
+			IOUtils.copy(bais, zipOutputStream);
+		}
 	}
 
 	public IfcFileReference createIfcFileReference() {
