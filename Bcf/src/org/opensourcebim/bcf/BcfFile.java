@@ -10,7 +10,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -44,7 +44,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class BcfFile {
-	private final Map<UUID, TopicFolder> topicFolders = new HashMap<UUID, TopicFolder>();
+	private final Map<UUID, TopicFolder> topicFolders = new LinkedHashMap<UUID, TopicFolder>();
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 	
 	private Project project;
@@ -93,7 +93,7 @@ public class BcfFile {
 								throw new BcfException(e);
 							}
 						}
-					} else if (zipEntry.getName().equals("snapshot.png")) {
+					} else if (zipEntry.getName().endsWith("snapshot.png")) {
 						ByteArrayOutputStream baos = new ByteArrayOutputStream();
 						IOUtils.copy(zipInputStream, baos);
 						issue.setDefaultSnapShot(baos.toByteArray());
