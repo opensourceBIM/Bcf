@@ -131,7 +131,7 @@ public class TopicFolder {
 
 	public Topic createTopic() {
 		Topic topic = new Topic();
-		markup.setTopic(topic);
+		getMarkup().setTopic(topic);
 		return topic;
 	}
 
