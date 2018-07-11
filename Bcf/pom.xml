@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.opensourcebim</groupId>
 	<artifactId>bcf</artifactId>
-	<version>0.0.14-SNAPSHOT</version>
+	<version>0.0.14</version>
 	<packaging>jar</packaging>
 	<properties>
 		<project.scm.id>github</project.scm.id>
@@ -170,7 +170,7 @@
 		<url>https://github.com/opensourceBIM/Bcf.git</url>
 		<connection>scm:git:https://github.com/opensourceBIM/Bcf.git</connection>
 		<developerConnection>scm:git:https://github.com/opensourceBIM/Bcf.git</developerConnection>
-		<tag>bcf-0.0.5</tag>
+		<tag>bcf-0.0.14</tag>
 	</scm>
 	<organization>
 		<name>OpenSource BIM</name>
