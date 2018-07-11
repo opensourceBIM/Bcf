@@ -388,6 +388,9 @@ public class BcfFile {
 				}
 				topicNode.set("viewpoints", viewPointsNode);
 			}
+			if (topicFolder.getDefaultSnapShot() != null) {
+				topicNode.put("defaultSnapshot", "snapshot.png");
+			}
 			List<Comment> comments = topicFolder.getMarkup().getComment();
 			if (comments != null) {
 				ArrayNode commentsNode = OBJECT_MAPPER.createArrayNode();
