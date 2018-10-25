@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.opensourcebim</groupId>
   <artifactId>bcf</artifactId>
-  <version>0.0.29</version>
+  <version>0.0.29-SNAPSHOT</version>
   <name>Bcf</name>
   <description>Standalone BCF library for reading/writing BCF</description>
   <url>https://github.com/opensourceBIM/Bcf</url>
