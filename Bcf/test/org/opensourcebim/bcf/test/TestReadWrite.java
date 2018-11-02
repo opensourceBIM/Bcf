@@ -68,7 +68,7 @@ public class TestReadWrite {
 		
 		bcfFile.validate();
 		
-		Path path = Paths.get("bcftest.zip");
+		Path path = Paths.get("bcftest.bcf");
 		bcfFile.write(path);
 		
 		BcfFile readBcf = BcfFile.read(path);

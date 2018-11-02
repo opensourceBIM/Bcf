@@ -63,13 +63,13 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class BcfFile {
 	private final Map<UUID, TopicFolder> topicFolders = new LinkedHashMap<UUID, TopicFolder>();
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-	
+
 	private Project project;
 	private Version version;
-	
+
 	public BcfFile() {
 	}
-	
+
 	public static BcfFile read(File file) throws BcfException, IOException {
 		FileInputStream inputStream = new FileInputStream(file);
 		try {
@@ -96,7 +96,7 @@ public class BcfFile {
 						try {
 							JAXBContext jaxbContext = JAXBContext.newInstance(Markup.class);
 							Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-							issue.setMarkup((Markup)unmarshaller.unmarshal(new FakeClosingInputStream(zipInputStream)));
+							issue.setMarkup((Markup) unmarshaller.unmarshal(new FakeClosingInputStream(zipInputStream)));
 						} catch (JAXBException e) {
 							throw new BcfException(e);
 						}
@@ -105,7 +105,7 @@ public class BcfFile {
 							try {
 								JAXBContext jaxbContext = JAXBContext.newInstance(VisualizationInfo.class);
 								Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-								issue.setVisualizationInfo((VisualizationInfo)unmarshaller.unmarshal(new FakeClosingInputStream(zipInputStream)));
+								issue.setVisualizationInfo((VisualizationInfo) unmarshaller.unmarshal(new FakeClosingInputStream(zipInputStream)));
 							} catch (JAXBException e) {
 								throw new BcfException(e);
 							}
@@ -133,7 +133,7 @@ public class BcfFile {
 						try {
 							JAXBContext jaxbContext = JAXBContext.newInstance(Version.class);
 							Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-							setVersion((Version)unmarshaller.unmarshal(new FakeClosingInputStream(zipInputStream)));
+							setVersion((Version) unmarshaller.unmarshal(new FakeClosingInputStream(zipInputStream)));
 						} catch (JAXBException e) {
 							e.printStackTrace();
 						}
@@ -147,7 +147,7 @@ public class BcfFile {
 			throw new BcfException(e);
 		}
 	}
-	
+
 	private void setVersion(Version version) {
 		this.version = version;
 	}
@@ -155,11 +155,11 @@ public class BcfFile {
 	public Version getVersion() {
 		return version;
 	}
-	
+
 	public void addTopicFolder(TopicFolder topicFolder) {
 		topicFolders.put(topicFolder.getUuid(), topicFolder);
 	}
-	
+
 	public static BcfFile read(InputStream inputStream) throws BcfException {
 		BcfFile bcf = new BcfFile();
 		bcf.readInternal(inputStream, ReadOptions.DEFAULT);
@@ -171,10 +171,10 @@ public class BcfFile {
 		bcf.readInternal(inputStream, readOptions);
 		return bcf;
 	}
-	
+
 	public void write(OutputStream outputStream) throws BcfException, IOException {
 		ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream);
-		
+
 		if (project != null) {
 			zipOutputStream.putNextEntry(new ZipEntry("project.bcfp"));
 			try {
@@ -189,7 +189,7 @@ public class BcfFile {
 
 		Version version = new Version();
 		version.setDetailedVersion("2.0 RC");
-		
+
 		zipOutputStream.putNextEntry(new ZipEntry("bcf.version"));
 		try {
 			JAXBContext jaxbContext = JAXBContext.newInstance(Version.class);
@@ -199,18 +199,18 @@ public class BcfFile {
 		} catch (JAXBException e) {
 			throw new BcfException(e);
 		}
-		
+
 		for (TopicFolder topicFolder : topicFolders.values()) {
 			topicFolder.write(zipOutputStream);
 		}
 		zipOutputStream.finish();
 		zipOutputStream.close();
 	}
-	
+
 	public Collection<TopicFolder> getTopicFolders() {
 		return topicFolders.values();
 	}
-	
+
 	public void write(File file) throws BcfException, IOException {
 		FileOutputStream outputStream = new FileOutputStream(file);
 		try {
@@ -276,15 +276,15 @@ public class BcfFile {
 			versionNode.put("id", version.getVersionId());
 			objectNode.set("version", versionNode);
 		}
-		
+
 		ObjectNode topicsNode = OBJECT_MAPPER.createObjectNode();
 		objectNode.set("topics", topicsNode);
-		
+
 		for (UUID uuid : topicFolders.keySet()) {
 			TopicFolder topicFolder = topicFolders.get(uuid);
 			ObjectNode topicFolderNode = OBJECT_MAPPER.createObjectNode();
 			topicFolderNode.put("uuid", uuid.toString());
-			
+
 			Header header = topicFolder.getMarkup().getHeader();
 			if (header != null) {
 				ObjectNode headerNode = OBJECT_MAPPER.createObjectNode();
@@ -318,7 +318,7 @@ public class BcfFile {
 				}
 				objectNode.set("header", headerNode);
 			}
-			
+
 			Topic topic = topicFolder.getMarkup().getTopic();
 			ObjectNode topicNode = OBJECT_MAPPER.createObjectNode();
 			topicFolderNode.set("topic", topicNode);
@@ -434,5 +434,16 @@ public class BcfFile {
 
 	public TopicFolder getTopicFolder(String topicGuid) {
 		return topicFolders.get(UUID.fromString(topicGuid));
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("BcfFile\n");
+		for (UUID uuid : topicFolders.keySet()) {
+			sb.append("\t" + uuid + "\n");
+			TopicFolder topicFolder = topicFolders.get(uuid);
+		}
+		return sb.toString();
 	}
 }
