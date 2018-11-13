@@ -37,11 +37,28 @@ import org.opensourcebim.bcf.markup.Topic;
 import org.opensourcebim.bcf.visinfo.VisualizationInfo;
 
 public class TopicFolder {
+	private static Marshaller MARKUP_MARSHALLER;
+	private static Marshaller VISUALIZATION_INFO_MARSHALLER;
+	private static byte[] dummyData;
 	private byte[] defaultSnapShot;
 	private Map<String, byte[]> snapshots;
 	private Markup markup;
 	private VisualizationInfo visualizationInfo;
 	private UUID uuid;
+	
+	static {
+		try {
+			JAXBContext jaxbContext = JAXBContext.newInstance(Markup.class);
+			MARKUP_MARSHALLER = jaxbContext.createMarshaller();
+			MARKUP_MARSHALLER.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+			
+			jaxbContext = JAXBContext.newInstance(VisualizationInfo.class);
+			VISUALIZATION_INFO_MARSHALLER = jaxbContext.createMarshaller();
+			VISUALIZATION_INFO_MARSHALLER.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+		} catch (JAXBException e) {
+			e.printStackTrace();
+		}
+	}
 
 	public TopicFolder(UUID uuid) {
 		this.uuid = uuid;
@@ -89,10 +106,7 @@ public class TopicFolder {
 		ZipEntry markup = new ZipEntry(getUuid().toString() + "/markup.bcf");
 		zipOutputStream.putNextEntry(markup);
 		try {
-			JAXBContext jaxbContext = JAXBContext.newInstance(Markup.class);
-			Marshaller marshaller = jaxbContext.createMarshaller();
-			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-			marshaller.marshal(getMarkup(), zipOutputStream);
+			MARKUP_MARSHALLER.marshal(getMarkup(), zipOutputStream);
 		} catch (JAXBException e) {
 			throw new BcfException(e);
 		}
@@ -100,10 +114,7 @@ public class TopicFolder {
 		ZipEntry visualizationInfo = new ZipEntry(getUuid().toString() + "/viewpoint.bcfv");
 		zipOutputStream.putNextEntry(visualizationInfo);
 		try {
-			JAXBContext jaxbContext = JAXBContext.newInstance(VisualizationInfo.class);
-			Marshaller marshaller = jaxbContext.createMarshaller();
-			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-			marshaller.marshal(getVisualizationInfo(), zipOutputStream);
+			VISUALIZATION_INFO_MARSHALLER.marshal(getVisualizationInfo(), zipOutputStream);
 		} catch (JAXBException e) {
 			throw new BcfException(e);
 		}
@@ -126,11 +137,20 @@ public class TopicFolder {
 	}
 
 	public void setDefaultSnapShotToDummy() {
-		try {
-			setDefaultSnapShot(getClass().getResourceAsStream("dummy.png"));
-		} catch (IOException e) {
-			e.printStackTrace();
+		setDefaultSnapShot(getDummyData());
+	}
+
+	private static byte[] getDummyData() {
+		if (dummyData == null) {
+			try {
+				try (InputStream resourceAsStream = TopicFolder.class.getResourceAsStream("dummy.png")) {
+					dummyData = IOUtils.toByteArray(resourceAsStream);
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
+		return dummyData;
 	}
 
 	public void addSnapShot(String name, byte[] byteArray) {

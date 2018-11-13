@@ -1,5 +1,7 @@
 package org.opensourcebim.bcf;
 
+import java.io.ByteArrayInputStream;
+
 /******************************************************************************
  * Copyright (C) 2009-2018  BIMserver.org
  * 
@@ -61,12 +63,41 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class BcfFile {
+	private static Unmarshaller MARKUP_UNMARSHALLER;
+	private static Unmarshaller VISUALIZATION_INFO_UNMARSHALLER;
+	private static Unmarshaller PROJECT_UNMARSHALLER;
+	private static Unmarshaller VERSION_UNMARSHALLER;
+	private static Marshaller PROJECT_MARSHALLER;
+	private static Marshaller VERSION_MARSHALLER;
 	private final Map<UUID, TopicFolder> topicFolders = new LinkedHashMap<UUID, TopicFolder>();
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
 	private Project project;
 	private Version version;
 
+	static {
+		try {
+			JAXBContext jaxbContext = JAXBContext.newInstance(Markup.class);
+			MARKUP_UNMARSHALLER = jaxbContext.createUnmarshaller();
+			
+			jaxbContext = JAXBContext.newInstance(VisualizationInfo.class);
+			VISUALIZATION_INFO_UNMARSHALLER = jaxbContext.createUnmarshaller();
+
+			jaxbContext = JAXBContext.newInstance(Project.class);
+			PROJECT_UNMARSHALLER = jaxbContext.createUnmarshaller();
+			PROJECT_MARSHALLER = jaxbContext.createMarshaller();
+			PROJECT_MARSHALLER.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+			
+			jaxbContext = JAXBContext.newInstance(Version.class);
+			VERSION_UNMARSHALLER = jaxbContext.createUnmarshaller();
+			VERSION_MARSHALLER = jaxbContext.createMarshaller();
+			VERSION_MARSHALLER.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+
+		} catch (JAXBException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	public BcfFile() {
 	}
 
@@ -79,9 +110,14 @@ public class BcfFile {
 		}
 	}
 
+	public static BcfFile read(byte[] data) throws BcfException, IOException {
+		BcfFile bcf = new BcfFile();
+		bcf.readInternal(new ByteArrayInputStream(data), ReadOptions.DEFAULT);
+		return bcf;
+	}
+
 	private void readInternal(InputStream inputStream, ReadOptions readOptions) throws BcfException {
-		ZipInputStream zipInputStream = new ZipInputStream(inputStream);
-		try {
+		try (ZipInputStream zipInputStream = new ZipInputStream(inputStream)) {
 			for (ZipEntry zipEntry = zipInputStream.getNextEntry(); zipEntry != null; zipEntry = zipInputStream.getNextEntry()) {
 				String name = zipEntry.getName();
 				if (name.contains("/")) {
@@ -94,18 +130,14 @@ public class BcfFile {
 					}
 					if (zipEntry.getName().endsWith(".bcf")) {
 						try {
-							JAXBContext jaxbContext = JAXBContext.newInstance(Markup.class);
-							Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-							issue.setMarkup((Markup) unmarshaller.unmarshal(new FakeClosingInputStream(zipInputStream)));
+							issue.setMarkup((Markup) MARKUP_UNMARSHALLER.unmarshal(new FakeClosingInputStream(zipInputStream)));
 						} catch (JAXBException e) {
 							throw new BcfException(e);
 						}
 					} else if (zipEntry.getName().endsWith(".bcfv")) {
 						if (readOptions.isReadViewPoints()) {
 							try {
-								JAXBContext jaxbContext = JAXBContext.newInstance(VisualizationInfo.class);
-								Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-								issue.setVisualizationInfo((VisualizationInfo) unmarshaller.unmarshal(new FakeClosingInputStream(zipInputStream)));
+								issue.setVisualizationInfo((VisualizationInfo) VISUALIZATION_INFO_UNMARSHALLER.unmarshal(new FakeClosingInputStream(zipInputStream)));
 							} catch (JAXBException e) {
 								throw new BcfException(e);
 							}
@@ -123,17 +155,13 @@ public class BcfFile {
 				} else {
 					if (name.equals("project.bcfp")) {
 						try {
-							JAXBContext jaxbContext = JAXBContext.newInstance(Project.class);
-							Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-							project = (Project) unmarshaller.unmarshal(new FakeClosingInputStream(zipInputStream));
+							project = (Project) PROJECT_UNMARSHALLER.unmarshal(new FakeClosingInputStream(zipInputStream));
 						} catch (JAXBException e) {
 							throw new BcfException(e);
 						}
 					} else if (name.equals("bcf.version")) {
 						try {
-							JAXBContext jaxbContext = JAXBContext.newInstance(Version.class);
-							Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-							setVersion((Version) unmarshaller.unmarshal(new FakeClosingInputStream(zipInputStream)));
+							setVersion((Version) VERSION_UNMARSHALLER.unmarshal(new FakeClosingInputStream(zipInputStream)));
 						} catch (JAXBException e) {
 							e.printStackTrace();
 						}
@@ -178,10 +206,7 @@ public class BcfFile {
 		if (project != null) {
 			zipOutputStream.putNextEntry(new ZipEntry("project.bcfp"));
 			try {
-				JAXBContext jaxbContext = JAXBContext.newInstance(Project.class);
-				Marshaller marshaller = jaxbContext.createMarshaller();
-				marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-				marshaller.marshal(project, zipOutputStream);
+				PROJECT_MARSHALLER.marshal(project, zipOutputStream);
 			} catch (JAXBException e) {
 				throw new BcfException(e);
 			}
@@ -192,10 +217,7 @@ public class BcfFile {
 
 		zipOutputStream.putNextEntry(new ZipEntry("bcf.version"));
 		try {
-			JAXBContext jaxbContext = JAXBContext.newInstance(Version.class);
-			Marshaller marshaller = jaxbContext.createMarshaller();
-			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-			marshaller.marshal(version, zipOutputStream);
+			VERSION_MARSHALLER.marshal(version, zipOutputStream);
 		} catch (JAXBException e) {
 			throw new BcfException(e);
 		}
@@ -228,6 +250,12 @@ public class BcfFile {
 
 	public TopicFolder createTopicFolder() {
 		TopicFolder topic = new TopicFolder();
+		addTopicFolder(topic);
+		return topic;
+	}
+
+	public TopicFolder createTopicFolder(UUID uuid) {
+		TopicFolder topic = new TopicFolder(uuid);
 		addTopicFolder(topic);
 		return topic;
 	}
@@ -265,7 +293,9 @@ public class BcfFile {
 	}
 
 	public static BcfFile read(Path path) throws BcfException, IOException {
-		return read(Files.newInputStream(path));
+		try (InputStream newInputStream = Files.newInputStream(path)) {
+			return read(newInputStream);
+		}
 	}
 
 	public ObjectNode toJson() {
@@ -316,7 +346,7 @@ public class BcfFile {
 						filesNode.add(fileNode);
 					}
 				}
-				objectNode.set("header", headerNode);
+				topicFolderNode.set("header", headerNode);
 			}
 
 			Topic topic = topicFolder.getMarkup().getTopic();
@@ -445,5 +475,14 @@ public class BcfFile {
 			TopicFolder topicFolder = topicFolders.get(uuid);
 		}
 		return sb.toString();
+	}
+
+	public void mergeInto(BcfFile otherBcf) {
+		for (TopicFolder topicFolder : otherBcf.getTopicFolders()) {
+			TopicFolder newTopicFolder = createTopicFolder(topicFolder.getUuid());
+			newTopicFolder.setDefaultSnapShot(topicFolder.getDefaultSnapShot());
+			newTopicFolder.setMarkup(topicFolder.getMarkup());
+			newTopicFolder.setVisualizationInfo(topicFolder.getVisualizationInfo());
+		}
 	}
 }
