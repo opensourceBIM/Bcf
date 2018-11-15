@@ -50,8 +50,8 @@ import org.opensourcebim.bcf.markup.Comment.Viewpoint;
 import org.opensourcebim.bcf.markup.Header;
 import org.opensourcebim.bcf.markup.Markup;
 import org.opensourcebim.bcf.markup.Topic;
-import org.opensourcebim.bcf.markup.Topic.DocumentReferences;
-import org.opensourcebim.bcf.markup.Topic.RelatedTopics;
+import org.opensourcebim.bcf.markup.Topic.DocumentReference;
+import org.opensourcebim.bcf.markup.Topic.RelatedTopic;
 import org.opensourcebim.bcf.markup.ViewPoint;
 import org.opensourcebim.bcf.project.Project;
 import org.opensourcebim.bcf.utils.FakeClosingInputStream;
@@ -213,7 +213,8 @@ public class BcfFile {
 		}
 
 		Version version = new Version();
-		version.setDetailedVersion("2.0 RC");
+		version.setVersionId("2.1");
+		version.setDetailedVersion("2.1");
 
 		zipOutputStream.putNextEntry(new ZipEntry("bcf.version"));
 		try {
@@ -358,7 +359,11 @@ public class BcfFile {
 			topicNode.put("guid", topic.getGuid());
 			topicNode.put("modifiedAuthor", topic.getModifiedAuthor());
 			topicNode.put("priority", topic.getPriority());
-			topicNode.put("referenceLink", topic.getReferenceLink());
+			ArrayNode referenceLinksNode = OBJECT_MAPPER.createArrayNode();
+			for (String referenceLink : topic.getReferenceLink()) {
+				referenceLinksNode.add(referenceLink);
+			}
+			topicNode.set("referenceLinks", referenceLinksNode);
 			topicNode.put("title", topic.getTitle());
 			topicNode.put("topicStatus", topic.getTopicStatus());
 			topicNode.put("topicType", topic.getTopicType());
@@ -379,10 +384,10 @@ public class BcfFile {
 			if (topic.getModifiedDate() != null) {
 				topicNode.put("modifiedDate", topic.getModifiedDate().toGregorianCalendar().getTimeInMillis());
 			}
-			List<DocumentReferences> documentReferences = topic.getDocumentReferences();
+			List<DocumentReference> documentReferences = topic.getDocumentReference();
 			if (documentReferences != null) {
 				ArrayNode documentReferencesNode = OBJECT_MAPPER.createArrayNode();
-				for (DocumentReferences documentReferences2 : documentReferences) {
+				for (DocumentReference documentReferences2 : documentReferences) {
 					ObjectNode documentReferenceNode = OBJECT_MAPPER.createObjectNode();
 					documentReferenceNode.put("description", documentReferences2.getDescription());
 					documentReferenceNode.put("guid", documentReferences2.getGuid());
@@ -399,10 +404,10 @@ public class BcfFile {
 				}
 				topicNode.set("labels", labelsNode);
 			}
-			List<RelatedTopics> relatedTopics = topic.getRelatedTopics();
+			List<RelatedTopic> relatedTopics = topic.getRelatedTopic();
 			if (relatedTopics != null) {
 				ArrayNode relatedTopicsNode = OBJECT_MAPPER.createArrayNode();
-				for (RelatedTopics relatedTopics2 : relatedTopics) {
+				for (RelatedTopic relatedTopics2 : relatedTopics) {
 					relatedTopicsNode.add(relatedTopics2.getGuid());
 				}
 				topicNode.set("relatedTopics", relatedTopicsNode);
@@ -438,12 +443,6 @@ public class BcfFile {
 					if (comment.getModifiedAuthor() != null) {
 						commentNode.put("modifiedAuthor", comment.getModifiedAuthor());
 					}
-					if (comment.getStatus() != null) {
-						commentNode.put("status", comment.getStatus());
-					}
-					if (comment.getVerbalStatus() != null) {
-						commentNode.put("verbalStatus", comment.getVerbalStatus());
-					}
 					if (comment.getModifiedDate() != null) {
 						commentNode.put("modifiedDate", comment.getModifiedDate().toGregorianCalendar().getTimeInMillis());
 					}
@@ -462,8 +461,8 @@ public class BcfFile {
 		return objectNode;
 	}
 
-	public TopicFolder getTopicFolder(String topicGuid) {
-		return topicFolders.get(UUID.fromString(topicGuid));
+	public TopicFolder getTopicFolder(String topicUuid) {
+		return topicFolders.get(UUID.fromString(topicUuid));
 	}
 
 	@Override
@@ -472,7 +471,6 @@ public class BcfFile {
 		sb.append("BcfFile\n");
 		for (UUID uuid : topicFolders.keySet()) {
 			sb.append("\t" + uuid + "\n");
-			TopicFolder topicFolder = topicFolders.get(uuid);
 		}
 		return sb.toString();
 	}
