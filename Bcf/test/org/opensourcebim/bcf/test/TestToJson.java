@@ -32,7 +32,7 @@ public class TestToJson {
 	@Test
 	public void test() {
 		try {
-			BcfFile bcfFile = BcfFile.read(Paths.get("D:\\test.bcfzip"));
+			BcfFile bcfFile = BcfFile.read(Paths.get("testdata/MaximumInformation.bcf"));
 			ObjectNode jsonNode = bcfFile.toJson();
 			ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 			File output = new File("bcf.json");

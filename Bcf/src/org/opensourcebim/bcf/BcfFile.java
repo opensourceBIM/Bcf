@@ -54,6 +54,7 @@ import org.opensourcebim.bcf.markup.Topic.DocumentReference;
 import org.opensourcebim.bcf.markup.Topic.RelatedTopic;
 import org.opensourcebim.bcf.markup.ViewPoint;
 import org.opensourcebim.bcf.project.Project;
+import org.opensourcebim.bcf.project.ProjectExtension;
 import org.opensourcebim.bcf.utils.FakeClosingInputStream;
 import org.opensourcebim.bcf.version.Version;
 import org.opensourcebim.bcf.visinfo.VisualizationInfo;
@@ -83,7 +84,7 @@ public class BcfFile {
 			jaxbContext = JAXBContext.newInstance(VisualizationInfo.class);
 			VISUALIZATION_INFO_UNMARSHALLER = jaxbContext.createUnmarshaller();
 
-			jaxbContext = JAXBContext.newInstance(Project.class);
+			jaxbContext = JAXBContext.newInstance(ProjectExtension.class);
 			PROJECT_UNMARSHALLER = jaxbContext.createUnmarshaller();
 			PROJECT_MARSHALLER = jaxbContext.createMarshaller();
 			PROJECT_MARSHALLER.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
@@ -155,7 +156,7 @@ public class BcfFile {
 				} else {
 					if (name.equals("project.bcfp")) {
 						try {
-							project = (Project) PROJECT_UNMARSHALLER.unmarshal(new FakeClosingInputStream(zipInputStream));
+							project = ((ProjectExtension) PROJECT_UNMARSHALLER.unmarshal(new FakeClosingInputStream(zipInputStream))).getProject();
 						} catch (JAXBException e) {
 							throw new BcfException(e);
 						}
@@ -165,6 +166,8 @@ public class BcfFile {
 						} catch (JAXBException e) {
 							e.printStackTrace();
 						}
+					} else if (name.equals("extensions.xsd") || name.endsWith("ifc")) {
+						// ignoring
 					} else {
 						throw new BcfException("Unexpected zipfile content " + name);
 					}
@@ -206,7 +209,9 @@ public class BcfFile {
 		if (project != null) {
 			zipOutputStream.putNextEntry(new ZipEntry("project.bcfp"));
 			try {
-				PROJECT_MARSHALLER.marshal(project, zipOutputStream);
+				ProjectExtension projectExtension = new ProjectExtension();
+				projectExtension.setProject(project);
+				PROJECT_MARSHALLER.marshal(projectExtension, zipOutputStream);
 			} catch (JAXBException e) {
 				throw new BcfException(e);
 			}
